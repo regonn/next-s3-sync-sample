@@ -1,34 +1,80 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## next-sync-s3
 
-## Getting Started
+### Github Actions secrets
 
-First, run the development server:
+- AWS_ACCESS_KEY_ID
+- AWS_CLOUD_FRONT_DISTRIBUTION
+- AWS_REGION
+- AWS_S3_BUCKET
+- AWS_SECRET_ACCESS_KEY
 
-```bash
-npm run dev
-# or
-yarn dev
+### IAM ROLE POLICY
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VisualEditor0",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:DeleteObject",
+        "cloudfront:CreateInvalidation",
+        "s3:PutObjectAcl"
+      ],
+      "Resource": [
+        "arn:aws:cloudfront::{YOUR_AWS_ACCOUNT_ID}:distribution/{YOUR_AWS_CLOUD_FRONT_DISTRIBUTION}",
+        "arn:aws:s3:::{YOUR_AWS_S3_BUCKET}/*",
+        "arn:aws:s3:::{YOUR_AWS_S3_BUCKET}"
+      ]
+    }
+  ]
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### S3
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+#### access control list (ACL)
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+- Bucket owner (your AWS account)
+  - Objects
+    - List
+    - Write
+  - Bucket ACL
+    - Read
+    - Write
+- Everyone (public access)
+  - Read
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+#### Bucket policy
 
-## Learn More
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "1",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity {YOUR_OAI}"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::{YOUR_AWS_S3_BUCKET}/*"
+    }
+  ]
+}
+```
 
-To learn more about Next.js, take a look at the following resources:
+### CloudFront Distributions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### General Settings
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Default root object: `index.html`
 
-## Deploy on Vercel
+#### Origins
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- S3 bucket access: Yes use OAI
+- Bucket policy: No, I will update the bucket policy
